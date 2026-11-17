@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chapter 1：自然の理 - 白紙の刻</title>
+<link rel="stylesheet" href="game_ui.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="magic_data.js"></script>
+<script src="game_engine.js"></script>
+</head>
+<body>
+
+<script>
+window.onload = () => {
+  const heroName = localStorage.getItem('rpg_hero_name') || "アストレア";
+
+  // 1. 共通エンジンの起動
+  const game = new MagicGameEngine({
+    chapterTitle: "CHAPTER I",
+    chapterSub: "序章：自然の理（水没神殿）",
+    onMagicHit: (target, magicResult) => handleMagicHit(target, magicResult),
+    onUpdate: () => updateChapter1()
+  });
+
+  // プレイヤーの初期位置（村の広場）
+  game.playerGroup.position.set(0, 0, 28);
+
+  // ==========================================
+  // 2. 3Dフィールド構築（村の広場 〜 水没神殿）
+  // ==========================================
+  // 大地（石畳の道と草原）
+  const groundGeo = new THREE.PlaneGeometry(120, 160);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x1c2226, roughness: 0.9 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  game.scene.add(ground);
+
+  // 神殿へと続く金縁の石畳ロード
+  const roadGeo = new THREE.PlaneGeometry(8, 120);
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x2c2c34, roughness: 0.7 });
+  const road = new THREE.Mesh(roadGeo, roadMat);
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(0, 0.01, -10);
+  game.scene.add(road);
+
+  // ==========================================
+  // 3. 精霊＆色違いモブキャラ（ブレワイ風シームレス会話）
+  // ==========================================
+  // 導きの精霊ルミナ（輝く白金の光球＋リング）
+  const spiritGroup = new THREE.Group();
+  const coreMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xf9e29c })
+  );
+  const wingRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.45, 0.02, 8, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  spiritGroup.add(coreMesh, wingRing);
+  spiritGroup.position.set(0, 1.8, 24);
+  game.scene.add(spiritGroup);
+
+  // モブキャラ①：青ローブの村の長老（主人公モデルの色違い流用）
+  const elderNpc = game.createHumanoidModel({
+    robeColor: 0x1e3f66, // 深い青ローブ
+    hairColor: 0xdddddd, // 白髪
+    skinColor: 0xe8bfa0,
+    trimColor: 0xc0c0c0
+  });
+  elderNpc.position.set(-4.5, 0, 20);
+  elderNpc.rotation.y = Math.PI / 4;
+  game.scene.add(elderNpc);
+
+  // モブキャラ②：緑ローブの旅の学者（主人公モデルの色違い流用）
+  const scholarNpc = game.createHumanoidModel({
+    robeColor: 0x1f4d36, // 深緑ローブ
+    hairColor: 0x5c3a21, // 茶髪
+    skinColor: 0xf5cbb0,
+    trimColor: 0xd4af37
+  });
+  scholarNpc.position.set(4.5, 0, 15);
+  scholarNpc.rotation.y = -Math.PI / 4;
+  game.scene.add(scholarNpc);
+
+  // 会話状態管理フラグ
+  let talkedElder = false;
+  let talkedScholar = false;
+  let spiritFollows = false;
+
+  // ゲーム開始直後のシームレス導入会話（ムービーなし・そのまま操作へ移行）
+  setTimeout(() => {
+    game.startDialog([
+      { speaker: "光の精霊ルミナ", text: `……聞こえますか？ 古の響きを宿す者、${heroName}。` },
+      { speaker: "光の精霊ルミナ", text: "世界から『真の言葉』が失われた大災厄『白紙の刻』以来、各地の自然の理が乱れています。" },
+      { speaker: "光の精霊ルミナ", text: "まずはこの村の人々から、北にある『水没神殿』の異変について噂を聞いてみましょう。" }
+    ], () => {
+      spiritFollows = true;
+      game.setObjective("青ローブの長老と緑ローブの学者に近づいて噂を聞く");
+    });
+  }, 500);
+
+  // ==========================================
+  // 4. 神殿入り口のギミック（2つの消えた燭台＆封印扉）
+  // ==========================================
+  const braziers = [];
+  [-5, 5].forEach((xPos, idx) => {
+    const stand = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.8, 1.5, 8),
+      new THREE.MeshStandardMaterial({ color: 0x44444c })
+    );
+    stand.position.set(xPos, 0.75, 4);
+    game.scene.add(stand);
+
+    // 火が灯った時に表示する炎オブジェクト
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.45, 1.1, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff5500 })
+    );
+    flame.position.set(xPos, 1.9, 4);
+    flame.visible = false;
+    game.scene.add(flame);
+
+    const targetObj = {
+      type: "brazier",
+      id: idx,
+      mesh: stand,
+      flameMesh: flame,
+      lit: false,
+      active: true,
+      hitRadius: 2.0
+    };
+    braziers.push(targetObj);
+    game.targets.push(targetObj);
+  });
+
+  // 神殿の封印扉（燭台2つに火を灯すと開く）
+  const gateMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 6, 1),
+    new THREE.MeshStandardMaterial({ color: 0x222228, metalness: 0.7, roughness: 0.3 })
+  );
+  gateMesh.position.set(0, 3, 2);
+  game.scene.add(gateMesh);
+  let gateOpened = false;
+
+  // ==========================================
+  // 5. 神殿内のモブモンスター（スライム・コウモリ）＆ボス（ゴーレム）
+  // ==========================================
+  // スライム生成（プルプルした半透明の水色球体）
+  function spawnSlime(x, z) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.75, 16, 12),
+      new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.85, roughness: 0.2 })
+    );
+    mesh.scale.set(1.2, 0.85, 1.2);
+    mesh.position.set(x, 0.6, z);
+    game.scene.add(mesh);
+
+    game.targets.push({
+      type: "enemy",
+      name: "ブルースライム",
+      mesh: mesh,
+      hp: 80,
+      maxHp: 80,
+      exp: 35,
+      atk: 15,
+      speed: 0.04,
+      hitRadius: 1.5,
+      active: true,
+      attackCooldown: 0
+    });
+  }
+
+  // コウモリ生成（紫黒の翼を持つ飛行モンスター）
+  function spawnBat(x, z) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0x3b1e54 })
+    );
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(1.8, 0.08, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x1a0d26 })
+    );
+    group.add(body, wing);
+    group.position.set(x, 2.2, z);
+    game.scene.add(group);
+
+    game.targets.push({
+      type: "enemy",
+      name: "ケイブバット",
+      mesh: group,
+      wingMesh: wing,
+      hp: 65,
+      maxHp: 65,
+      exp: 45,
+      atk: 20,
+      speed: 0.065,
+      hitRadius: 1.6,
+      active: true,
+      attackCooldown: 0
+    });
+  }
+
+  // 神殿エリア内にスライム3体・コウモリ2体を配置（倒してレベルアップ！）
+  spawnSlime(-4, -10);
+  spawnSlime(4, -14);
+  spawnSlime(0, -18);
+  spawnBat(-5, -22);
+  spawnBat(5, -24);
+
+  // 最奥の中ボス：遺跡の守護者（エンシェント・ゴーレム）
+  const golemGroup = new THREE.Group();
+  const torso = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 3.2, 1.8),
+    new THREE.MeshStandardMaterial({ color: 0x5c5346, roughness: 0.9 })
+  );
+  torso.position.y = 2.2;
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 1.0, 1.2),
+    new THREE.MeshStandardMaterial({ color: 0x4a4238 })
+  );
+  head.position.y = 4.2;
+  // 暴走する赤いコア（弱点）
+  const core = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.5),
+    new THREE.MeshBasicMaterial({ color: 0xff2200 })
+  );
+  core.position.set(0, 2.4, 0.95);
+  golemGroup.add(torso, head, core);
+  golemGroup.position.set(0, 0, -42);
+  game.scene.add(golemGroup);
+
+  const bossGolem = {
+    type: "boss",
+    name: "遺跡の守護者（エンシェント・ゴーレム）",
+    mesh: golemGroup,
+    hp: 450,
+    maxHp: 450,
+    exp: 250,
+    atk: 45,
+    speed: 0.035,
+    hitRadius: 2.8,
+    active: true,
+    attackCooldown: 0
+  };
+  game.targets.push(bossGolem);
+
+  // ==========================================
+  // 6. 魔法着弾時のギミック＆ダメージ処理
+  // ==========================================
+  function handleMagicHit(target, magicResult) {
+    // ① 燭台ギミックへの着弾
+    if (target.type === "brazier") {
+      if (magicResult.magic.element === "炎" || magicResult.isCombo) {
+        if (!target.lit) {
+          target.lit = true;
+          target.flameMesh.visible = true;
+          game.showBanner("🔥 燭台に聖なる炎が灯った！", "#ff7700");
+
+          // 2つとも灯ったら封印扉が沈んで開く
+          if (braziers.every(b => b.lit) && !gateOpened) {
+            gateOpened = true;
+            game.startDialog([
+              { speaker: "光の精霊ルミナ", text: "やりました！ 2つの燭台に火が灯り、神殿の封印扉が開きました！" },
+              { speaker: "光の精霊ルミナ", text: "一度放った初級〜上級の魔法は、次回から『魔法名だけ』を叫ぶことで無詠唱発動できますよ！" },
+              { speaker: "光の精霊ルミナ", text: "神殿内には魔物が徘徊しています。倒して経験値を積み、レベルを上げて最奥の守護者を鎮めましょう！" }
+            ], () => {
+              game.setObjective("神殿の魔物を倒してLvを上げ、最奥の守護者を撃破せよ");
+            });
+          }
+        }
+      } else {
+        game.showBanner("※ 燭台には『炎属性（ファイアボール等）』を当てよう！", "#aaaaaa");
+      }
+      return;
+    }
+
+    // ② 敵モンスター・ボスへのダメージ処理
+    if (target.type === "enemy" || target.type === "boss") {
+      let damage = magicResult.finalPower;
+
+      // 複合魔法や弱点属性ボーナス
+      if (magicResult.isCombo) {
+        damage = Math.floor(damage * 1.3);
+      }
+
+      target.hp -= damage;
+      game.showBanner(`💥 ${target.name} に ${damage} のダメージ！（残りHP: ${Math.max(0, target.hp)}）`, "#f9e29c");
+
+      // 撃破判定
+      if (target.hp <= 0) {
+        target.active = false;
+        game.scene.remove(target.mesh);
+        game.spawnExplosion(target.mesh.position, 0xd4af37, 45);
+        game.gainExp(target.exp);
+
+        if (target.type === "boss") {
+          // Chapter 1 クリア演出！
+          localStorage.setItem('rpg_chapter1_cleared', 'true');
+          setTimeout(() => {
+            game.startDialog([
+              { speaker: "光の精霊ルミナ", text: "見事です！ 暴走していた遺跡の守護者が静まり、水没神殿の理が正常に戻りました！" },
+              { speaker: "光の精霊ルミナ", text: `あなたの声には確かに古の力が宿っています、${heroName}。` },
+              { speaker: "光の精霊ルミナ", text: "次は敵組織『沈黙の教会』が暗躍する雷の塔と双子大聖堂（Chapter 2）へ向かいましょう！" }
+            ], () => {
+              showClearModal();
+            });
+          }, 800);
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // 7. 毎フレーム更新（NPC会話トリガー・敵AI・扉アニメーション）
+  // ==========================================
+  function updateChapter1() {
+    const pPos = game.playerGroup.position;
+
+    // 精霊ルミナがプレイヤーの斜め後ろをふわふわ追従
+    if (spiritFollows) {
+      const targetX = pPos.x + 1.1;
+      const targetZ = pPos.z + 0.8;
+      spiritGroup.position.x += (targetX - spiritGroup.position.x) * 0.06;
+      spiritGroup.position.z += (targetZ - spiritGroup.position.z) * 0.06;
+      spiritGroup.position.y = 1.8 + Math.sin(performance.now() * 0.004) * 0.15;
+      wingRing.rotation.y += 0.05;
+    }
+
+    // モブキャラ①（青ローブの長老）との接近会話
+    if (!talkedElder && !game.isTalking && pPos.distanceTo(elderNpc.position) < 2.8) {
+      talkedElder = true;
+      game.startDialog([
+        { speaker: "青ローブの長老", text: "おお、黒きローブの旅人よ。北の水没神殿には近づかん方がよいぞ。" },
+        { speaker: "青ローブの長老", text: "数日前から神殿の入り口にある2つの燭台の火が消え、中からスライムやコウモリが溢れ出しておるのじゃ……。" }
+      ]);
+    }
+
+    // モブキャラ②（緑ローブの旅の学者）との接近会話
+    if (!talkedScholar && !game.isTalking && pPos.distanceTo(scholarNpc.position) < 2.8) {
+      talkedScholar = true;
+      game.startDialog([
+        { speaker: "緑ローブの学者", text: "古文書によれば、神殿の封印扉は『炎の古語（ファイアボール等）』で2つの燭台に火を灯すと開くらしい。" },
+        { speaker: "緑ローブの学者", text: "しかも、炎と風の魔法を連続で唱えると強力な『複合魔術』が発動するという噂だ！ 試してみる価値はあるぞ。" }
+      ], () => {
+        game.setObjective("神殿前の2つの燭台に『炎魔法』を当てて扉を開けよ");
+      });
+    }
+
+    // 封印扉が開くアニメーション
+    if (gateOpened && gateMesh.position.y > -3.2) {
+      gateMesh.position.y -= 0.08;
+    }
+
+    // モブモンスター＆ボスの移動AI（プレイヤーが近づくと追尾＆攻撃）
+    for (const target of game.targets) {
+      if (!target.active || (target.type !== "enemy" && target.type !== "boss")) continue;
+
+      if (target.wingMesh) {
+        target.wingMesh.rotation.z = Math.sin(performance.now() * 0.02) * 0.5;
+      }
+
+      const dist = pPos.distanceTo(target.mesh.position);
+      const aggroRange = target.type === "boss" ? 16 : 11;
+
+      if (dist < aggroRange && dist > (target.hitRadius + 0.5)) {
+        const dir = new THREE.Vector3().subVectors(pPos, target.mesh.position);
+        dir.y = 0;
+        dir.normalize();
+        target.mesh.position.addScaledVector(dir, target.speed);
+        target.mesh.lookAt(pPos.x, target.mesh.position.y, pPos.z);
+      } else if (dist <= (target.hitRadius + 0.8)) {
+        // 近接攻撃（クールダウン付き）
+        if (target.attackCooldown <= 0) {
+          game.takeDamage(target.atk);
+          game.showBanner(`⚠️ ${target.name} の攻撃！ ${target.atk} のダメージ！`, "#ff4444");
+          target.attackCooldown = 120; // 約2秒間隔
+        }
+      }
+      if (target.attackCooldown > 0) target.attackCooldown--;
+    }
+  }
+
+  // Chapter 1 クリア画面モーダル
+  function showClearModal() {
+    const modal = document.createElement('div');
+    modal.style.cssText = "position:fixed; inset:0; background:rgba(10,10,12,0.92); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:200; text-align:center; border:2px solid #d4af37;";
+    modal.innerHTML = `
+      <div style="color:#d4af37; letter-spacing:0.3em; font-size:0.9rem;">CHAPTER I COMPLETED</div>
+      <h1 style="color:#fff; font-size:2.2rem; margin:12px 0; text-shadow:0 0 15px #d4af37;">序章：自然の理 クリア！</h1>
+      <p style="color:#a0a0a8; margin-bottom:24px;">現在のレベル：Lv.${game.player.lv} ／ 最大MP：${game.player.maxMp}</p>
+      <button onclick="location.href='index.html'" style="padding:14px 32px; background:linear-gradient(135deg,#f9e29c,#d4af37); color:#0a0a0c; font-weight:700; border:none; font-size:1rem; letter-spacing:0.15em;">章選択メニューへ戻る</button>
+    `;
+    document.body.appendChild(modal);
+  }
+};
+</script>
+
+</body>
+</html>
