@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" href="data:,">
+<title>白紙の刻 - 創世の古語</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Shippori+Mincho:wght@500;700&display=swap');
+
+  :root {
+    --bg-black: #0a0a0c;
+    --panel-black: rgba(18, 18, 22, 0.92);
+    --gold-main: #d4af37;
+    --gold-bright: #f9e29c;
+    --gold-dark: #8a6d1c;
+    --text-white: #f5f5f7;
+    --text-gray: #a0a0a8;
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-black);
+    color: var(--text-white);
+    font-family: 'Shippori Mincho', serif;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .magic-circle-bg {
+    position: absolute;
+    width: 650px;
+    height: 650px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 50%;
+    box-shadow: 0 0 60px rgba(212, 175, 55, 0.08), inset 0 0 60px rgba(212, 175, 55, 0.08);
+    animation: rotateSlow 60s linear infinite;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .magic-circle-bg::before {
+    content: '';
+    width: 85%;
+    height: 85%;
+    border: 1px dashed rgba(212, 175, 55, 0.35);
+    border-radius: 50%;
+    animation: rotateReverse 40s linear infinite;
+  }
+
+  .magic-circle-bg::after {
+    content: '';
+    position: absolute;
+    width: 65%;
+    height: 65%;
+    border: 2px solid rgba(212, 175, 55, 0.15);
+    transform: rotate(45deg);
+  }
+
+  @keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes rotateReverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 10;
+    width: 92%;
+    max-width: 720px;
+    text-align: center;
+    padding: 36px 28px;
+    background: var(--panel-black);
+    border: 1px solid var(--gold-dark);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(212, 175, 55, 0.15);
+  }
+
+  .container::before, .container::after {
+    content: '❖';
+    position: absolute;
+    color: var(--gold-main);
+    font-size: 18px;
+  }
+  .container::before { top: 8px; left: 12px; }
+  .container::after { bottom: 8px; right: 12px; }
+
+  .subtitle {
+    font-family: 'Cinzel', serif;
+    color: var(--gold-main);
+    letter-spacing: 0.35em;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0 0 8px 0;
+    letter-spacing: 0.2em;
+    color: var(--text-white);
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+    font-weight: 700;
+  }
+
+  .divider {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-main), transparent);
+    margin: 18px auto;
+  }
+
+  .desc {
+    color: var(--text-gray);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-bottom: 22px;
+  }
+
+  .input-group {
+    margin-bottom: 22px;
+  }
+
+  .input-label {
+    display: block;
+    color: var(--gold-bright);
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+
+  input[type="text"] {
+    width: 80%;
+    max-width: 340px;
+    padding: 12px 16px;
+    font-size: 1.2rem;
+    font-family: 'Shippori Mincho', serif;
+    text-align: center;
+    color: var(--text-white);
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--gold-main);
+    outline: none;
+    letter-spacing: 0.15em;
+  }
+
+  input[type="text"]:focus {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 13px 34px;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--bg-black);
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold-main));
+    border: none;
+    cursor: pointer;
+    margin: 6px;
+  }
+
+  .btn:active {
+    transform: scale(0.96);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gold-bright);
+    border: 1px solid var(--gold-main);
+  }
+
+  #chapter-select {
+    display: none;
+  }
+
+  .chapter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .chapter-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--gold-dark);
+    padding: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .chapter-card:active {
+    border-color: var(--gold-bright);
+    background: rgba(212, 175, 55, 0.15);
+  }
+
+  .chapter-num {
+    font-family: 'Cinzel', serif;
+    color: var(--gold-main);
+    font-size: 0.78rem;
+    letter-spacing: 0.15em;
+  }
+
+  .chapter-title {
+    color: var(--text-white);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 4px 0;
+  }
+
+  .chapter-sub {
+    color: var(--text-gray);
+    font-size: 0.78rem;
+  }
+
+  .status-msg {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--gold-bright);
+    min-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+
+  <div class="magic-circle-bg"></div>
+
+  <div class="container">
+    <div class="subtitle">THE LOST ANCIENT WORDS</div>
+    <h1>白紙の刻</h1>
+    <div class="divider"></div>
+
+    <!-- ステップ1：主人公の名前入力 -->
+    <div id="setup-screen">
+      <p class="desc">
+        言葉が力を失った世界で、古の響きを紡ぐ者よ。<br>
+        汝の魂に刻まれし「名」を記せ。
+      </p>
+      <div class="input-group">
+        <label class="input-label" for="player-name">― 主人公の名（カタカナ推奨） ―</label>
+        <input type="text" id="player-name" placeholder="例：アストレア / ユウキ" maxlength="12">
+      </div>
+      <button class="btn" onclick="saveNameAndProceed()">魂に名を刻む</button>
+      <div id="setup-msg" class="status-msg"></div>
+    </div>
+
+    <!-- ステップ2：章選択＆マイクテスト -->
+    <div id="chapter-select">
+      <p class="desc" id="welcome-text" style="margin-bottom:12px;"></p>
+      
+      <button class="btn btn-outline" style="padding:10px 22px; font-size:0.9rem;" onclick="testVoiceRecognition()">🎤 声の共鳴テスト（マイク確認）</button>
+      <div id="voice-status" class="status-msg"></div>
+
+      <div class="chapter-grid">
+        <div class="chapter-card" onclick="startChapter('chapter1.html')">
+          <div class="chapter-num">CHAPTER I</div>
+          <div class="chapter-title">序章：自然の理</div>
+          <div class="chapter-sub">炎・水・氷・風・土（水没神殿）</div>
+        </div>
+        <div class="chapter-card" onclick="startChapter('chapter2.html')">
+          <div class="chapter-num">CHAPTER II</div>
+          <div class="chapter-title">中章：光闇と雷鳴</div>
+          <div class="chapter-sub">白・黒・雷（準備中）</div>
+        </div>
+        <div class="chapter-card" onclick="startChapter('chapter3.html')">
+          <div class="chapter-num">CHAPTER III</div>
+          <div class="chapter-title">終章：星屑の重力</div>
+          <div class="chapter-sub">重力属性（準備中）</div>
+        </div>
+        <div class="chapter-card" onclick="startChapter('final_boss.html')" style="border-color: var(--gold-main);">
+          <div class="chapter-num" style="color: var(--gold-bright);">FINAL CHAPTER</div>
+          <div class="chapter-title" style="color: var(--gold-bright);">最終決戦：創世の無</div>
+          <div class="chapter-sub">真名解放（準備中）</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button class="btn btn-outline" style="padding: 7px 16px; font-size: 0.78rem;" onclick="resetName()">名前を変更する</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  window.onload = () => {
+    const savedName = localStorage.getItem('rpg_hero_name');
+    if (savedName) {
+      showChapterSelect(savedName);
+    }
+  };
+
+  function saveNameAndProceed() {
+    const input = document.getElementById('player-name').value.trim();
+    const msg = document.getElementById('setup-msg');
+
+    if (!input) {
+      msg.textContent = "※ 名前を入力してください。";
+      return;
+    }
+
+    localStorage.setItem('rpg_hero_name', input);
+    showChapterSelect(input);
+  }
+
+  function showChapterSelect(name) {
+    const lv = localStorage.getItem('rpg_hero_lv') || 1;
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('chapter-select').style.display = 'block';
+    document.getElementById('welcome-text').innerHTML = 
+      `古語の継承者 <strong style="color:var(--gold-bright); font-size:1.15rem;">「${name}」</strong>（Lv.${lv}）よ、挑む章を選べ。`;
+  }
+
+  function resetName() {
+    localStorage.removeItem('rpg_hero_name');
+    document.getElementById('chapter-select').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('player-name').value = '';
+  }
+
+  function testVoiceRecognition() {
+    const status = document.getElementById('voice-status');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      status.textContent = "※ このブラウザは音声認識に対応していません（Safariをお使いください）。";
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ja-JP';
+    status.textContent = "🎤 聞き取り中... あなたの名前や「ファイアボール」と唱えてみてください";
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const heroName = localStorage.getItem('rpg_hero_name');
+      if (transcript.includes(heroName)) {
+        status.textContent = `✨ 共鳴成功！「${transcript}」― 魂の真名が響きました！`;
+      } else {
+        status.textContent = `🔊 認識テキスト：「${transcript}」`;
+      }
+    };
+
+    recognition.onerror = (e) => {
+      status.textContent = `※ マイクエラー (${e.error})：HTTPS環境かマイク許可を確認してください。`;
+    };
+
+    recognition.start();
+  }
+
+  function startChapter(filename) {
+    if (filename === 'chapter1.html') {
+      window.location.href = filename;
+    } else {
+      alert(`${filename} は現在制作中です。まずは「CHAPTER I：序章」をプレイしてください！`);
+    }
+  }
+</script>
+
+</body>
+</html>
